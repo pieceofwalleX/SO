@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 
 #define COMMAND_ERROR_1 "Command not found!"
+#define COMMAND_ERROR_2 "Sub Argument not found!"
 
 /*
     Funcao usada para criar ficheiro
@@ -55,19 +56,24 @@ void command_verify(int argc,char *argv[]){
         //Verifica se o comando existe na lista de comandos
         if(!strcmp(command_list[i],argv[1])){
             //Se existir verificar se temos mais argumentos
-            if(argc < 3){
+            if(argc < 2){
                 //Caso nao tenha mais argumentos, Mandar executar o commando
                 execute_command(argc,argv,args);
                 exit(EXIT_SUCCESS);
             }else{
                 //Caso tenha mais subargumentos verificar se existem, Caso existam colocar em um array
                 for(int r = 2;r < argc;r++){
+                    int subcommand_found = 0;
                     for(int t = 0;t < 8;t++){
-                        if(strcmp(argv[r],subcommand_list[t]) != 0){
-                            fprintf(stderr,"%s",COMMAND_ERROR_1);
-                            exit(EXIT_FAILURE);
+                        if(!strcmp(argv[r],subcommand_list[t])){
+                            subcommand_found = 1;
                         }
                         args[r-2] = argv[r];
+                        
+                    }
+                    if(!subcommand_found){
+                        fprintf(stderr,"%s\n",COMMAND_ERROR_2);
+                        exit(EXIT_FAILURE);  
                     }
                 }
                 execute_command(argc,argv,args);
@@ -98,6 +104,7 @@ void command_ls(int argc,char *argv[],char *args){
     int i = 0;
     DIR *dir;
     struct dirent *entry;
+    struct stat file_info;
     dir = opendir("."); // Diretorio atual
 
     if(!dir){
@@ -105,15 +112,27 @@ void command_ls(int argc,char *argv[],char *args){
         exit(EXIT_FAILURE);
     }
 
+    if(stat(".",&file_info) == -1){
+        fprintf(stderr,"Erro ao obter informacoes do ficheiro");
+        exit(EXIT_FAILURE);
+    }
+
     while((entry = readdir(dir)) != NULL){
-        if((!strcmp(entry->d_name,".") || !strcmp(entry->d_name,".."))){
+        if((!strcmp(entry->d_name,".") || !strcmp(entry->d_name,"..")) && exists(argc,argv,"-a",0) == 1){
             continue;
         }
-        if(i % 4 == 0){
+        if(i % 5 == 0){
+            
             fprintf(stdout,"\n");
             i=0;
         }
-        fprintf(stdout,"%s\t\t",entry->d_name);
+        if(exists(argc,argv,"-l",0) == 1){
+            if(S_ISDIR(file_info.st_mode)){
+                fprintf(stdout,"\033[1;34m%s\033[0m \t\t",entry->d_name);
+            }else{
+                fprintf(stdout,"\033[0;37m%s\033[0m \t\t",entry->d_name);
+            }
+        }
         i++;
     }
     fprintf(stdout,"\n");
