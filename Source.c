@@ -16,7 +16,7 @@ void create_file(){
 /*
     Funcao usada para ler o input
 */
-void read_command(int argc,char **argv[]){
+int read_command(int argc,char *argv[]){
     //Caso o 1 argumento seja top vamos redirecionalo
     if(!strcmp(argv[1],"top")){
         if(argc > 2){
@@ -32,13 +32,13 @@ void read_command(int argc,char **argv[]){
             return EXIT_FAILURE;
         }
 
-        fprintf(stdout,"CPU LOAD: %.2f %.2f %.2f",cpuload[0],cpuload[1],cpuload[3]);
+        fprintf(stdout,"CPU LOAD: %.2f %.2f %.2f\n",cpuload[0],cpuload[1],cpuload[2]);
     }
 }
 /*
     Funcao usada para executar o comando desejado pelo utilizador
 */
-void execute_command(char** argv[]){
+int execute_command(char *argv[]){
 
 }
 /*
