@@ -5,6 +5,7 @@
 #include <string.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <linux/limits.h>
 
 #define COMMAND_ERROR_1 "Command not found!"
 #define COMMAND_ERROR_2 "Sub Argument not found!"
@@ -90,14 +91,21 @@ void command_verify(int argc,char *argv[]){
 void command_top(){
 
     double cpuload[3];
+    FILE *file = fopen("/proc/loadavg","r");
+    
 
-    if(getloadavg(cpuload,3) == -1){
-        fprintf(stderr,"Error getting cpu load");
+    if(!file){
+        if((fscanf(file,"%lf %lf %lf",&cpuload[0],&cpuload[1],&cpuload[2]) )!= 3){
+            fprintf(stderr,"Error getting cpu load");
+            exit(EXIT_FAILURE);
+        }
+
+        fprintf(stdout,"CPU LOAD: %.2f %.2f %.2f\n",cpuload[0],cpuload[1],cpuload[2]);
+        exit(EXIT_SUCCESS);
+    }else{
+        fprintf(stderr,"Error opening /proc/loadavg\n");
         exit(EXIT_FAILURE);
     }
-
-    fprintf(stdout,"CPU LOAD: %.2f %.2f %.2f\n",cpuload[0],cpuload[1],cpuload[2]);
-    exit(EXIT_SUCCESS);
 }
 
 void command_ls(int argc,char *argv[],char *args){
@@ -112,20 +120,17 @@ void command_ls(int argc,char *argv[],char *args){
         exit(EXIT_FAILURE);
     }
 
-
-
+    
     while((entry = readdir(dir)) != NULL){
-        
+
         if((!strcmp(entry->d_name,".") || !strcmp(entry->d_name,"..")) && exists(argc,argv,"-a",0) == 1){
             continue;
         }
-        if(i % 5 == 0){
-            
-            fprintf(stdout,"\n");
-            i=0;
-        }
 
-        if(stat(".",&file_info) == -1){
+        char full_path[PATH_MAX];
+        snprintf(full_path,sizeof(full_path),"./%s",entry->d_name);
+
+        if(stat(full_path,&file_info) == -1){
             fprintf(stderr,"Erro ao obter informacoes do ficheiro");
             exit(EXIT_FAILURE);
         }
@@ -135,6 +140,20 @@ void command_ls(int argc,char *argv[],char *args){
                 fprintf(stdout,"\033[1;34m%s\033[0m \t\t",entry->d_name);
             }else{
                 fprintf(stdout,"\033[0;37m%s\033[0m \t\t",entry->d_name);
+            }
+
+            if(i % 5 == 0){
+                fprintf(stdout,"\n");
+            i=0;
+        }
+        }else{
+            if(i == 0){
+                fprintf(stdout," Permissoes    Nome\n");
+            }
+            if(S_ISDIR(file_info.st_mode)){
+                fprintf(stdout,"  %03o \t \033\t[1;34m%s\033[0m \t \n",file_info.st_mode && 0777,entry->d_name);
+            }else{
+                fprintf(stdout,"  %03o \t \033\t[0;37m%s\033[0m \t \n",file_info.st_mode && 0777,entry->d_name);
             }
         }
         i++;
