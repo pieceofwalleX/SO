@@ -9,7 +9,7 @@
 #define COMMAND_ERROR_1 "Command not found!"
 
 /*
-    Funcao usada para criar
+    Funcao usada para criar ficheiro
 */
 void create_file(){
 
@@ -37,9 +37,10 @@ void read_command(int argc,char *argv[]){
 /*
     Funcao usada para executar o comando desejado pelo utilizador
 */
-int execute_command(int argc,char *argv[]){
+int execute_command(int argc,char *argv[],char *args[]){
+
     if(!strcmp(argv[1],"ls")){
-        command_ls();
+        command_ls(argc,argv,args);
     }
 }
 /*
@@ -48,6 +49,7 @@ int execute_command(int argc,char *argv[]){
 void command_verify(int argc,char *argv[]){
     char *command_list[3] = {"ls","grep","ps"};
     char *subcommand_list[8] = {"-l","-a","-h","-r","-t","-R","-F","--color"};
+    char *args[8] = {};
      
     for(int i = 0;i < 3;i++){
         //Verifica se o comando existe na lista de comandos
@@ -55,18 +57,21 @@ void command_verify(int argc,char *argv[]){
             //Se existir verificar se temos mais argumentos
             if(argc < 3){
                 //Caso nao tenha mais argumentos, Mandar executar o commando
-                execute_command(argc,argv);
+                execute_command(argc,argv,args);
                 exit(EXIT_SUCCESS);
             }else{
-                //Caso tenha mais subargumentos verificar se existem
+                //Caso tenha mais subargumentos verificar se existem, Caso existam colocar em um array
                 for(int r = 2;r < argc;r++){
                     for(int t = 0;t < 8;t++){
                         if(strcmp(argv[r],subcommand_list[t]) != 0){
+                            fprintf(stderr,"%s",COMMAND_ERROR_1);
                             exit(EXIT_FAILURE);
                         }
+                        args[r-2] = argv[r];
                     }
                 }
-                execute_command(argc,argv);
+                execute_command(argc,argv,args);
+                exit(EXIT_SUCCESS);
             }
         }
     }
@@ -89,7 +94,7 @@ void command_top(){
     exit(EXIT_SUCCESS);
 }
 
-void command_ls(){//char *args
+void command_ls(int argc,char *argv[],char *args){
     int i = 0;
     DIR *dir;
     struct dirent *entry;
@@ -101,7 +106,7 @@ void command_ls(){//char *args
     }
 
     while((entry = readdir(dir)) != NULL){
-        if(!strcmp(entry->d_name,".") || !strcmp(entry->d_name,"..")){
+        if((!strcmp(entry->d_name,".") || !strcmp(entry->d_name,".."))){
             continue;
         }
         if(i % 4 == 0){
@@ -112,6 +117,23 @@ void command_ls(){//char *args
         i++;
     }
     fprintf(stdout,"\n");
+}
+/*
+    Esta funcao serve para verificar se um argumento existe no array argv 
+    Em vez de se adicionar um loop em todos as funcoes basta chamar esta funcao
+    O type pode ter X valores dependendo do command_list, usando sempre a mesma ordem
+*/
+int exists(int argc,char *argv[],char *string,int type){
+    
+    if(type == 0){
+        for(int i = 2; i < argc;i++){
+            if(!strcmp(argv[i],string)){
+                return 0;
+            }
+        }
+    }
+
+    return 1;
 }
 
 int main(int argc, char *argv[]){
