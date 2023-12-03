@@ -94,7 +94,7 @@ void command_top(){
     FILE *file = fopen("/proc/loadavg","r");
     
 
-    if(!file){
+    if(file != NULL){
         if((fscanf(file,"%lf %lf %lf",&cpuload[0],&cpuload[1],&cpuload[2]) )!= 3){
             fprintf(stderr,"Error getting cpu load");
             exit(EXIT_FAILURE);
@@ -137,23 +137,18 @@ void command_ls(int argc,char *argv[],char *args){
 
         if(exists(argc,argv,"-l",0) == 1){
             if(S_ISDIR(file_info.st_mode)){
-                fprintf(stdout,"\033[1;34m%s\033[0m \t\t",entry->d_name);
+                fprintf(stdout,"\033[1;34m%s\033[0m\t",entry->d_name);
             }else{
-                fprintf(stdout,"\033[0;37m%s\033[0m \t\t",entry->d_name);
+                fprintf(stdout,"\033[0;37m%s\033[0m\t",entry->d_name);
             }
-
-            if(i % 5 == 0){
-                fprintf(stdout,"\n");
-            i=0;
-        }
         }else{
             if(i == 0){
                 fprintf(stdout," Permissoes    Nome\n");
             }
             if(S_ISDIR(file_info.st_mode)){
-                fprintf(stdout,"  %03o \t \033\t[1;34m%s\033[0m \t \n",file_info.st_mode && 0777,entry->d_name);
+                fprintf(stdout,"  %03o \t \033\t[1;34m%s\033[0m \t\n",file_info.st_mode && 0777,entry->d_name);
             }else{
-                fprintf(stdout,"  %03o \t \033\t[0;37m%s\033[0m \t \n",file_info.st_mode && 0777,entry->d_name);
+                fprintf(stdout,"  %03o \t \033\t[0;37m%s\033[0m \t\n",file_info.st_mode && 0777,entry->d_name);
             }
         }
         i++;
