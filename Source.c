@@ -112,12 +112,10 @@ void command_ls(int argc,char *argv[],char *args){
         exit(EXIT_FAILURE);
     }
 
-    if(stat(".",&file_info) == -1){
-        fprintf(stderr,"Erro ao obter informacoes do ficheiro");
-        exit(EXIT_FAILURE);
-    }
+
 
     while((entry = readdir(dir)) != NULL){
+        
         if((!strcmp(entry->d_name,".") || !strcmp(entry->d_name,"..")) && exists(argc,argv,"-a",0) == 1){
             continue;
         }
@@ -126,6 +124,12 @@ void command_ls(int argc,char *argv[],char *args){
             fprintf(stdout,"\n");
             i=0;
         }
+
+        if(stat(".",&file_info) == -1){
+            fprintf(stderr,"Erro ao obter informacoes do ficheiro");
+            exit(EXIT_FAILURE);
+        }
+
         if(exists(argc,argv,"-l",0) == 1){
             if(S_ISDIR(file_info.st_mode)){
                 fprintf(stdout,"\033[1;34m%s\033[0m \t\t",entry->d_name);
