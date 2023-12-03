@@ -47,7 +47,7 @@ int command_verify(int argc,char *argv[]){
      
     for(int i = 0;i < 3;i++){
         //Verifica se o comando existe na lista de comandos
-        if(strcmp(command_list[i],argv[1])){
+        if(!strcmp(command_list[i],argv[1])){
             //Se existir verificar se temos mais argumentos
             if(argc < 3){
                 //Caso nao tenha mais argumentos, Mandar executar o commando
