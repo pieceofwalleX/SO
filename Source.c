@@ -222,7 +222,7 @@ void running_process(){
 
             if(pid > 0){
                 char status[300];
-                snprintf(status,sizeof(status),"proc/%d/status",pid);
+                snprintf(status,sizeof(status),"proc/%d/stat",pid);
 
                 FILE *fp = fopen(status,"r");
 
@@ -233,6 +233,8 @@ void running_process(){
                             fprintf(stdout,"%s",line);
                         }
                     }
+                }else{
+                    // continue;
                 }
                 fclose(fp);
             }
