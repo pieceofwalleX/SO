@@ -80,13 +80,63 @@ void read_command(int argc,char *argv[]){
     Funcao usada para executar o comando desejado pelo utilizador
 */
 int execute_command(comands input){
-    // int length = sizeof(subarguments)/sizeof(subarguments[0]);
-    // subarguments[length] = NULL;
-    char ** subarguments = input.argv_cmd1 + 1;
+    char ** subarguments;
+
     if(!input.found){
+        subarguments = input.argv_cmd1 + 1;
         execvp(input.argv_cmd1[1],subarguments);
+    }else{
+
+        execute_multicommands(input);
+
+        // subarguments = input.argv_cmd2 + 2;
+        // execvp(input.argv_cmd2[1],subarguments);
     }
     return 0;
+}
+
+int execute_multicommands(comands input){
+    char ** subarguments;
+    /*
+        Aqui basicamente vai se criar um processo filho para executar
+        os argumentos antes dos operadores >,< ou |
+        Quando o processo filho finalizar o processo pai
+        executa os argumentos depois dos operadores
+    */
+    int pipe_controles[2];
+    pid_t child;
+
+    if(pipe(pipe_controles) == -1){
+        fprintf(stderr,"Falha ao criar o PIPE");
+        return 1;
+    }
+
+    child = fork();
+
+    if(child == -1){
+        fprintf(stderr,"Falha ao criar Processo");
+        return 1;
+    }
+
+
+    if(child == 0){
+        /*
+            Fechar a leitura de dados no processo filho
+        */
+        close(pipe_controles[0]);
+
+        subarguments = input.argv_cmd1 + 1;
+
+        execvp(input.argv_cmd1[1],subarguments);
+    }else{
+        /*
+            Fechar a escrita de dados no processo pai
+        */
+        close(pipe_controles[0]);
+        subarguments = input.argv_cmd2 + 1;
+        execvp(input.argv_cmd2[1],subarguments);
+        
+    }
 }
 
 /*
