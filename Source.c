@@ -168,9 +168,78 @@ int execute_multicommands(comands input)
         }
     }
 
-    
+
 }
 
+int is_process(const char* name){
+    for(size_t i = 0; i < strlen(name); i++){
+        if(name[i] < '0' || name[i] > '9'){
+            return 0;
+        }
+    }
+    return 1;
+}
+
+int number_of_process(){
+
+    DIR *dir;
+    struct dirent *entry;
+
+    dir = opendir("/proc");
+
+    if(dir == NULL){
+        fprintf(stderr,"Falha ao abir /proc");
+        return 1;
+    }
+
+    int count = 0;
+
+    while((entry = readdir(dir)) != NULL){
+        if(is_process(entry->d_name)){
+            count++;
+        }
+    }
+    return count;
+}
+
+void running_process(){
+    DIR *dir = opendir("/proc/");
+    struct dirent *entry;
+    struct stat file_info;
+
+    if(dir == NULL){
+        fprintf(stderr,"Falha ao abir /proc");
+        return 1;
+    }
+
+    while((entry = readdir(dir)) != NULL){
+        char path[300];
+        snprintf(path,sizeof(path),"/proc/%s",entry->d_name);
+
+        //Verificar se e um diretorio
+        if(!stat(path,&file_info) && S_ISDIR(file_info.st_mode)){
+            int pid = atoi(entry->d_name);
+
+            if(pid > 0){
+                char status[300];
+                snprintf(status,sizeof(status),"proc/%d/status",pid);
+
+                FILE *fp = fopen(status,"r");
+
+                if(fp != NULL){
+                    char line[300];
+                    while(fgets(line,sizeof(line),fp)){
+                        if(strstr(line,"Name:") || strstr(line,"Status:")){
+                            fprintf(stdout,"%s",line);
+                        }
+                    }
+                }
+                fclose(fp);
+            }
+        }
+    }
+    closedir(dir);
+}
 /*
     Funcao usada quando o argumento top e escolhido
 */
@@ -178,24 +247,30 @@ int command_top()
 {
 
     double cpuload[3];
-    FILE *file = fopen("/proc/loadavg", "r");
+    FILE *load = fopen("/proc/loadavg", "r");
 
-    if (file != NULL)
+    if (load != NULL)
     {
-        if ((fscanf(file, "%lf %lf %lf", &cpuload[0], &cpuload[1], &cpuload[2])) != 3)
+        if ((fscanf(load, "%lf %lf %lf", &cpuload[0], &cpuload[1], &cpuload[2])) != 3)
         {
             fprintf(stderr, "Error getting cpu load");
             return 1;
         }
 
         fprintf(stdout, "CPU LOAD: %.2f %.2f %.2f\n", cpuload[0], cpuload[1], cpuload[2]);
-        return 0;
+
+
     }
     else
     {
         fprintf(stderr, "Error opening /proc/loadavg\n");
         return 1;
     }
+
+    fprintf(stdout,"Processes : %d\n",number_of_process());
+    running_process();
+    return 0;
+
 }
 
 int main(int argc, char *argv[])
