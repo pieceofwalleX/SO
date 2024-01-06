@@ -71,19 +71,21 @@ void read_command(int argc,char *argv[]){
     //Caso o 1 argumento seja top vamos redirecionalo
     if(!strcmp(argv[1],"top")){
         command_top();
+    }else{
+        execute_command(parse(argc,argv));
     }
 
-    execute_command(argc,argv);
-    return 0;
+    
+    return;
     }
 /*
     Funcao usada para executar o comando desejado pelo utilizador
 */
-int execute_command(int argc,char *argv[]){
-
-    comands input = parse(argc,argv);
-
-    execlp(input.argv_cmd2,NULL);
+int execute_command(comands input){
+    // if(!input.found){
+    //     execvp(input.argv_cmd1[0],input.argv_cmd1);
+    // }
+    return 0;
 }
 
 /*
