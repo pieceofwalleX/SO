@@ -80,8 +80,12 @@ void read_command(int argc,char *argv[]){
     Funcao usada para executar o comando desejado pelo utilizador
 */
 int execute_command(comands input){
+    char** subarguments;
+    for(int i = 2; i < input.argc_cmd1;i++){
+        strcpy(subarguments[i-2],input.argv_cmd1[i]);
+    }
     if(!input.found){
-        if(execlp(input.argv_cmd1[1],input.argv_cmd1[1],input.argv_cmd1[2],NULL) == -1){
+        if(execlp(input.argv_cmd1[1],input.argv_cmd1[1],subarguments,NULL) == -1){
             perror("Comando nao encontrado");
             return 1;
         }
