@@ -80,13 +80,9 @@ void read_command(int argc,char *argv[]){
     Funcao usada para executar o comando desejado pelo utilizador
 */
 int execute_command(comands input){
-    char** subarguments;
-    for(int i = 1; i < input.argc_cmd1 - 1;i++){
-        strcpy(subarguments[i-1],input.argv_cmd1[i]);
-    }
     // int length = sizeof(subarguments)/sizeof(subarguments[0]);
     // subarguments[length] = NULL;
-
+    char ** subarguments = input.argv_cmd1 + 1;
     if(!input.found){
         execvp(input.argv_cmd1[1],subarguments);
     }
