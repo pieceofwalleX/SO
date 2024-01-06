@@ -118,24 +118,28 @@ int execute_multicommands(comands input){
         return 1;
     }
 
+    if(!strcmp(input.operator,"|")){
+        if(child == 0){
+            /*
+                Fechar a leitura de dados no processo filho
+            */
+            close(pipe_controles[0]);
+            dup2(pipe_controles[1],STDOUT_FILENO);
+            close(pipe_controles[1]);
 
-    if(child == 0){
-        /*
-            Fechar a leitura de dados no processo filho
-        */
-        close(pipe_controles[0]);
+            subarguments = input.argv_cmd1 + 1;
 
-        subarguments = input.argv_cmd1 + 1;
-
-        execvp(input.argv_cmd1[1],subarguments);
-    }else{
-        /*
-            Fechar a escrita de dados no processo pai
-        */
-        close(pipe_controles[0]);
-        subarguments = input.argv_cmd2 + 1;
-        execvp(input.argv_cmd2[1],subarguments);
-        
+            execvp(input.argv_cmd1[1],subarguments);
+        }else{
+            /*
+                Fechar a escrita de dados no processo pai
+            */
+            close(pipe_controles[0]);
+            dup2(pipe_controles[0],STDIN_FILENO);
+            close(pipe_controles[0]);
+            subarguments = input.argv_cmd2 + 1;
+            execvp(input.argv_cmd2[1],subarguments);
+        }
     }
 }
 
