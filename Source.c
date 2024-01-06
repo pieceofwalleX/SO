@@ -5,6 +5,7 @@
 #include <string.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <linux/limits.h>
 
 #define COMMAND_ERROR_1 "Command not found!"
@@ -62,6 +63,25 @@ comands parse(char *argv[], int argc)
 
     return result;
 }
+
+/*
+    Verificar se um tecla foi precionada
+*/
+
+int key_pressed()
+{
+    struct timeval tv;
+    fd_set fds;
+
+    tv.tv_sec = 0;
+    tv.tv_usec = 0;
+
+    FD_ZERO(&fds);
+    FD_SET(STDIN_FILENO, &fds);
+
+    return select(STDIN_FILENO + 1, &fds, NULL, NULL, &tv) == 1;
+}
+
 /*
     Funcao usada para criar ficheiro
 */
@@ -207,25 +227,92 @@ int number_of_process()
     return count;
 }
 
-void running_process()
+int number_of_process_running(int print)
 {
     DIR *dir = opendir("/proc/");
     struct dirent *entry;
     struct stat file_info;
-    char nome[200], status[200], user[200];
+    int count = 0, pid;
+    char nome[50], state[50], user[50];
 
-    int i = 0;
+    if (dir == NULL)
+    {
+        perror("Falha ao abrir /proc/");
+        return 1;
+    }
+
+    while ((entry = readdir(dir)) != NULL)
+    {
+        char path[300];
+        snprintf(path, sizeof(path), "/proc/%s", entry->d_name);
+
+        if (!stat(path, &file_info) && S_ISDIR(file_info.st_mode))
+        {
+            if(count == 18){
+                break;
+            }
+            pid = atoi(entry->d_name);
+            if (pid > 0)
+            {
+
+                char status[300];
+                snprintf(status, sizeof(status), "/proc/%d/status", pid);
+                FILE *fp = fopen(status, "r");
+
+                if (fp != NULL)
+                {
+                    char line[300];
+                    while (fgets(line, sizeof(line), fp))
+                    {
+                        if (strstr(line, "Name:"))
+                        {
+                            sscanf(line, "Name: %[^\n]", nome);
+                        }
+                        else if (strstr(line, "State:"))
+                        {
+                            sscanf(line, "State: %[^\n]", state);
+                        }
+                        else if (strstr(line, "User:"))
+                        {
+                            sscanf(line, "Uid: %*d %50s", user);
+                        }
+                    }
+                    fclose(fp);
+                }
+            }
+            if (!strcmp(state, "R (running)"))
+            {
+                if (print == 1)
+                {
+                    fprintf(stdout, "%d", pid);
+                    fprintf(stdout, "\t\t\t%s", state);
+                    fprintf(stdout, "\t\t\t/proc/%d/status%s\n", pid, nome);
+                }
+                count++;
+            }
+        }
+    }
+    return count;
+}
+
+void list_process()
+{
+    DIR *dir = opendir("/proc/");
+    struct dirent *entry;
+    struct stat file_info;
+    char nome[50], state[50], user[50];
+
+    int process = 0, processRunning = number_of_process_running(0);
 
     if (dir == NULL)
     {
         fprintf(stderr, "Falha ao abir /proc");
         return 1;
     }
-    fprintf(stdout, "####################################################################################\n");
-    fprintf(stdout, "@ID\t\t\t@STATUS\t\t\t\t@NAME\n");
-    fprintf(stdout, "####################################################################################\n\n");
     while ((entry = readdir(dir)) != NULL)
     {
+        // Verificar quantos processo estao a ser mostrados
+        
         char path[300];
         snprintf(path, sizeof(path), "/proc/%s", entry->d_name);
 
@@ -236,6 +323,11 @@ void running_process()
 
             if (pid > 0)
             {
+                if (process + processRunning == 18)
+                {
+                    break;
+                }
+                process++;
                 char status[300];
                 snprintf(status, sizeof(status), "/proc/%d/status", pid);
 
@@ -252,31 +344,27 @@ void running_process()
                         }
                         else if (strstr(line, "State:"))
                         {
-                            sscanf(line, "State: %[^\n]", status);
+                            sscanf(line, "State: %[^\n]", state);
                         }
                         else if (strstr(line, "User:"))
                         {
                             sscanf(line, "Uid: %*d %50s", user);
                         }
                     }
+                    fclose(fp);
                 }
                 else
                 {
                     // continue;
                 }
-                if (!strcmp(status, "R (running)"))
+                if (strcmp(state, "R (running)") != 0)
                 {
                     fprintf(stdout, "%d", pid);
-                    fprintf(stdout, "\t\t\t%s", status);
-                    fprintf(stdout, "\t\t\t%s", user);
+                    fprintf(stdout, "\t\t\t%s", state);
                     fprintf(stdout, "\t\t\t/proc/%d/status%s\n", pid, nome);
-                    fclose(fp);
-                    i++;
                 }
-                else
-                {
-                    continue;
-                }
+
+                
             }
         }
     }
@@ -289,8 +377,16 @@ int command_top()
 {
     char c;
     while (1)
-    {   
-
+    {
+        if (key_pressed())
+        {
+            c = getchar();
+            if (c == 'q' || c == 'Q')
+            {
+                break;
+                ;
+            }
+        }
         double cpuload[3];
         FILE *load = fopen("/proc/loadavg", "r");
 
@@ -311,8 +407,15 @@ int command_top()
         }
 
         fprintf(stdout, "Processes : %d\n", number_of_process());
-        running_process();
+        fprintf(stdout, "Processes Running: %d\n", number_of_process_running(0));
 
+        fprintf(stdout, "####################################################################################\n");
+        fprintf(stdout, "@ID\t\t\t@STATUS\t\t\t\t@NAME\n");
+        fprintf(stdout, "####################################################################################\n\n");
+
+
+        number_of_process_running(1);//O 1 server para dar Print aos Processos
+        list_process();
 
         sleep(10);
         system("clear");
