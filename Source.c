@@ -81,14 +81,14 @@ void read_command(int argc,char *argv[]){
 */
 int execute_command(comands input){
     char** subarguments;
-    for(int i = 2; i < input.argc_cmd1;i++){
-        strcpy(subarguments[i-2],input.argv_cmd1[i]);
+    for(int i = 1; i < input.argc_cmd1 - 1;i++){
+        strcpy(subarguments[i-1],input.argv_cmd1[i]);
     }
+    // int length = sizeof(subarguments)/sizeof(subarguments[0]);
+    // subarguments[length] = NULL;
+
     if(!input.found){
-        if(execlp(input.argv_cmd1[1],input.argv_cmd1[1],subarguments,NULL) == -1){
-            perror("Comando nao encontrado");
-            return 1;
-        }
+        execvp(input.argv_cmd1[1],subarguments);
     }
     return 0;
 }
