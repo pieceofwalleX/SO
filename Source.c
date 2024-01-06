@@ -137,9 +137,13 @@ int execute_multicommands(comands input){
             close(pipe_controles[0]);
             dup2(pipe_controles[0],STDIN_FILENO);
             close(pipe_controles[0]);
-            subarguments = input.argv_cmd2 + 1;
-            execvp(input.argv_cmd2[1],subarguments);
+
+            
+
+            subarguments = input.argv_cmd2;
+            execvp(input.argv_cmd2[0],subarguments);
         }
+        waitpid(child,NULL,0);
     }
 }
 
