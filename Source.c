@@ -10,6 +10,52 @@
 #define COMMAND_ERROR_1 "Command not found!"
 #define COMMAND_ERROR_2 "Sub Argument not found!"
 
+
+typedef struct {
+    int found;
+    const char *operator;
+    int argc_cmd1;
+    char **argv_cmd1;
+    int argc_cmd2;
+    char **argv_cmd2;
+} comands;
+
+comands parse(char *argv[], int argc) {
+    comands result;
+
+    result.found = 0; 
+    result.operator = NULL;
+    result.argc_cmd1 = 0;
+    result.argc_cmd2 = 0;
+    result.argv_cmd1 = NULL;
+    result.argv_cmd2 = NULL;
+
+    int found = 0;
+    for (int i = 0; i < argc; i++) {
+        if (strcmp(argv[i], ">") == 0 || strcmp(argv[i], "<") == 0 || strcmp(argv[i], "|") == 0) {
+            found = 1;
+            result.found = 1;
+	    result.operator =  argv[i];
+            continue;
+        }
+
+        if (!found) {
+            // Adiciona argumentos no contexto do cmd1
+            result.argv_cmd1 = realloc(result.argv_cmd1, (result.argc_cmd1 + 1) * sizeof(char *));
+            result.argv_cmd1[result.argc_cmd1] = strdup(argv[i]);
+            result.argc_cmd1++;
+        } else {
+            // Adiciona argumentos no contexto do cmd2 
+            result.argv_cmd2 = realloc(result.argv_cmd2, (result.argc_cmd2 + 1) * sizeof(char *));
+            result.argv_cmd2[result.argc_cmd2] = strdup(argv[i]);
+            result.argc_cmd2++;
+        }
+    }
+    result.argv_cmd1[result.argc_cmd1] = NULL;
+    if (found) result.argv_cmd2[result.argc_cmd2] = NULL;
+
+    return result;
+}
 /*
     Funcao usada para criar ficheiro
 */
@@ -24,67 +70,22 @@ void read_command(int argc,char *argv[]){
 
     //Caso o 1 argumento seja top vamos redirecionalo
     if(!strcmp(argv[1],"top")){
-        if(argc > 2){
-            fprintf(stderr,"%s\n",COMMAND_ERROR_1);
-            fprintf(stderr,"Command top format: mycmd top\n");
-            exit(EXIT_FAILURE);
-        }
         command_top();
-        exit(EXIT_SUCCESS);
     }
 
-    command_verify(argc,argv);
-
-}
+    execute_command(argc,argv);
+    return 0;
+    }
 /*
     Funcao usada para executar o comando desejado pelo utilizador
 */
-int execute_command(int argc,char *argv[],char *args[]){
+int execute_command(int argc,char *argv[]){
 
-    if(!strcmp(argv[1],"ls")){
-        command_ls(argc,argv,args);
-    }
+    comands input = parse(argc,argv);
+
+    execlp(input.argv_cmd2,NULL);
 }
-/*
-    Funcao para verificar se existe o comando introduzido
-*/
-void command_verify(int argc,char *argv[]){
-    char *command_list[3] = {"ls","grep","ps"};
-    char *subcommand_list[8] = {"-l","-a","-h","-r","-t","-R","-F","--color"};
-    char *args[8] = {};
-     
-    for(int i = 0;i < 3;i++){
-        //Verifica se o comando existe na lista de comandos
-        if(!strcmp(command_list[i],argv[1])){
-            //Se existir verificar se temos mais argumentos
-            if(argc < 2){
-                //Caso nao tenha mais argumentos, Mandar executar o commando
-                execute_command(argc,argv,args);
-                exit(EXIT_SUCCESS);
-            }else{
-                //Caso tenha mais subargumentos verificar se existem, Caso existam colocar em um array
-                for(int r = 2;r < argc;r++){
-                    int subcommand_found = 0;
-                    for(int t = 0;t < 8;t++){
-                        if(!strcmp(argv[r],subcommand_list[t])){
-                            subcommand_found = 1;
-                        }
-                        args[r-2] = argv[r];
-                        
-                    }
-                    if(!subcommand_found){
-                        fprintf(stderr,"%s\n",COMMAND_ERROR_2);
-                        exit(EXIT_FAILURE);  
-                    }
-                }
-                execute_command(argc,argv,args);
-                exit(EXIT_SUCCESS);
-            }
-        }
-    }
-    fprintf(stderr,"%s\n",COMMAND_ERROR_1);
-    exit(EXIT_FAILURE);
-}
+
 /*
     Funcao usada quando o argumento top e escolhido
 */
@@ -97,81 +98,18 @@ void command_top(){
     if(file != NULL){
         if((fscanf(file,"%lf %lf %lf",&cpuload[0],&cpuload[1],&cpuload[2]) )!= 3){
             fprintf(stderr,"Error getting cpu load");
-            exit(EXIT_FAILURE);
+            return 1;
         }
 
         fprintf(stdout,"CPU LOAD: %.2f %.2f %.2f\n",cpuload[0],cpuload[1],cpuload[2]);
-        exit(EXIT_SUCCESS);
+        return 0;
     }else{
         fprintf(stderr,"Error opening /proc/loadavg\n");
-        exit(EXIT_FAILURE);
+        return 1;
     }
 }
 
-void command_ls(int argc,char *argv[],char *args){
-    int i = 0;
-    DIR *dir;
-    struct dirent *entry;
-    struct stat file_info;
-    dir = opendir("."); // Diretorio atual
 
-    if(!dir){
-        fprintf(stderr,"Error opening directory");
-        exit(EXIT_FAILURE);
-    }
-
-    
-    while((entry = readdir(dir)) != NULL){
-
-        if((!strcmp(entry->d_name,".") || !strcmp(entry->d_name,"..")) && exists(argc,argv,"-a",0) == 1){
-            continue;
-        }
-
-        char full_path[PATH_MAX];
-        snprintf(full_path,sizeof(full_path),"./%s",entry->d_name);
-
-        if(stat(full_path,&file_info) == -1){
-            fprintf(stderr,"Erro ao obter informacoes do ficheiro");
-            exit(EXIT_FAILURE);
-        }
-
-        if(exists(argc,argv,"-l",0) == 1){
-            if(S_ISDIR(file_info.st_mode)){
-                fprintf(stdout,"\033[1;34m%s\033[0m\t",entry->d_name);
-            }else{
-                fprintf(stdout,"\033[0;37m%s\033[0m\t",entry->d_name);
-            }
-        }else{
-            if(i == 0){
-                fprintf(stdout," Permissoes    Nome\n");
-            }
-            if(S_ISDIR(file_info.st_mode)){
-                fprintf(stdout,"  %03o \t \033\t[1;34m%s\033[0m \t\n",file_info.st_mode && 0777,entry->d_name);
-            }else{
-                fprintf(stdout,"  %03o \t \033\t[0;37m%s\033[0m \t\n",file_info.st_mode && 0777,entry->d_name);
-            }
-        }
-        i++;
-    }
-    fprintf(stdout,"\n");
-}
-/*
-    Esta funcao serve para verificar se um argumento existe no array argv 
-    Em vez de se adicionar um loop em todos as funcoes basta chamar esta funcao
-    O type pode ter X valores dependendo do command_list, usando sempre a mesma ordem
-*/
-int exists(int argc,char *argv[],char *string,int type){
-    
-    if(type == 0){
-        for(int i = 2; i < argc;i++){
-            if(!strcmp(argv[i],string)){
-                return 0;
-            }
-        }
-    }
-
-    return 1;
-}
 
 int main(int argc, char *argv[]){
 
