@@ -81,7 +81,7 @@ void read_command(int argc,char *argv[]){
 */
 int execute_command(comands input){
     if(!input.found){
-        if(execlp(input.argv_cmd1[0],input.argv_cmd1[1],NULL) == -1){
+        if(execlp(input.argv_cmd1[1],input.argv_cmd1[1],input.argv_cmd1[2],NULL) == -1){
             perror("Comando nao encontrado");
             return 1;
         }
