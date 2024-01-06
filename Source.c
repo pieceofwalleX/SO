@@ -94,7 +94,7 @@ int execute_command(comands input)
 {
     char **subarguments;
 
-    if (!input.found)
+    if(!input.found)
     {
         subarguments = input.argv_cmd1 + 1;
         execvp(input.argv_cmd1[1], subarguments);
@@ -158,6 +158,7 @@ int execute_multicommands(comands input)
         dup2(pipe_controles[0], STDIN_FILENO);
         close(pipe_controles[0]);
         execvp(input.argv_cmd2[0], input.argv_cmd2);
+
     }
 }
 
