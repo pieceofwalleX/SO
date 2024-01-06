@@ -8,8 +8,6 @@
 #include <linux/limits.h>
 
 #define COMMAND_ERROR_1 "Command not found!"
-#define COMMAND_ERROR_2 "Sub Argument not found!"
-
 
 typedef struct {
     int found;
@@ -39,7 +37,7 @@ comands parse(char *argv[], int argc) {
             continue;
         }
 
-        if (!found) {
+        if(!found) {
             // Adiciona argumentos no contexto do cmd1
             result.argv_cmd1 = realloc(result.argv_cmd1, (result.argc_cmd1 + 1) * sizeof(char *));
             result.argv_cmd1[result.argc_cmd1] = strdup(argv[i]);
@@ -53,6 +51,7 @@ comands parse(char *argv[], int argc) {
     }
     result.argv_cmd1[result.argc_cmd1] = NULL;
     if (found) result.argv_cmd2[result.argc_cmd2] = NULL;
+
 
     return result;
 }
@@ -72,26 +71,25 @@ void read_command(int argc,char *argv[]){
     if(!strcmp(argv[1],"top")){
         command_top();
     }else{
-        execute_command(parse(argc,argv));
+        execute_command(parse(argv,argc));
     }
 
-    
     return;
-    }
+}
 /*
     Funcao usada para executar o comando desejado pelo utilizador
 */
 int execute_command(comands input){
-    // if(!input.found){
-    //     execvp(input.argv_cmd1[0],input.argv_cmd1);
-    // }
+    if(!input.found){
+        execvp(input.argv_cmd1[0],input.argv_cmd1);
+    }
     return 0;
 }
 
 /*
     Funcao usada quando o argumento top e escolhido
 */
-void command_top(){
+int command_top(){
 
     double cpuload[3];
     FILE *file = fopen("/proc/loadavg","r");
