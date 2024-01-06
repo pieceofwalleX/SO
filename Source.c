@@ -206,12 +206,17 @@ void running_process(){
     DIR *dir = opendir("/proc/");
     struct dirent *entry;
     struct stat file_info;
+    char nome[200],status[200],user[200];
+
+    int i = 0;
 
     if(dir == NULL){
         fprintf(stderr,"Falha ao abir /proc");
         return 1;
     }
-
+    fprintf(stdout,"####################################################################################\n");
+    fprintf(stdout,"@ID\t\t\t@STATUS\t\t\t\t@NAME\n");
+    fprintf(stdout,"####################################################################################\n\n");
     while((entry = readdir(dir)) != NULL){
         char path[300];
         snprintf(path,sizeof(path),"/proc/%s",entry->d_name);
@@ -222,21 +227,36 @@ void running_process(){
 
             if(pid > 0){
                 char status[300];
-                snprintf(status,sizeof(status),"proc/%d/stat",pid);
+                snprintf(status,sizeof(status),"/proc/%d/status",pid);
 
                 FILE *fp = fopen(status,"r");
+                
 
-                if(fp != NULL){
+
+                if(fp != NULL){ 
                     char line[300];
                     while(fgets(line,sizeof(line),fp)){
-                        if(strstr(line,"Name:") || strstr(line,"Status:")){
-                            fprintf(stdout,"%s",line);
+                        if(strstr(line,"Name:")){
+                            sscanf(line,"Name: %[^\n]",nome);
+                        }else if(strstr(line,"State:")){
+                            sscanf(line,"State: %[^\n]",status);
+                        }else if(strstr(line,"User:")){
+                            sscanf(line,"User: %[^\n]",user);
                         }
                     }
                 }else{
                     // continue;
                 }
+                fprintf(stdout,"%d",pid);
+                fprintf(stdout,"\t\t\t%s",status);
+                fprintf(stdout,"\t\t\t/proc/%d/status%s\n",pid,nome);
                 fclose(fp);
+                
+                if(i % 20 == 0){
+                    sleep(10);
+                    system("clear");
+                }
+                i++;
             }
         }
     }
