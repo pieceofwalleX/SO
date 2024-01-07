@@ -161,6 +161,8 @@ void read_file(comands input){
 
     if(child == 0){
         close(pipe_controles[0]);
+        dup2(pipe_controles[1],STDOUT_FILENO);
+        close(pipe_controles[1]);
 
         int output_file = open(input.argv_cmd2[0],O_RDONLY);
 
@@ -170,11 +172,11 @@ void read_file(comands input){
         }
 
         char buffer[4096];
-        ssize_t bytesRead = read(pipe_controles[0],buffer,sizeof(buffer)); //Bytes lidos do pipe
+        ssize_t bytesRead = read(output_file,buffer,sizeof(buffer)); //Bytes lidos do pipe
 
-        write(pipe_controles[1],buffer,bytesRead);//Escrever no ficheiro
+        write(STDOUT_FILENO,buffer,bytesRead);//Escrever no ficheiro
 
-        close(pipe_controles[1]); 
+        close(output_file); 
         
     }else{
         close(pipe_controles[1]);
@@ -351,13 +353,27 @@ int number_of_process_running(int print)
 
         if (!stat(path, &file_info) && S_ISDIR(file_info.st_mode))
         {
-            if (count == 18)
+            if (count == 19)
             {
                 break;
             }
             pid = atoi(entry->d_name);
             if (pid > 0)
-            {
+            {   
+                char cmdline[300];
+                snprintf(cmdline, sizeof(cmdline), "/proc/%d/cmdline", pid);
+                FILE *fp = fopen(cmdline, "r");
+
+                if(fp == NULL){
+                    perror("Falha ao abir o ficheiro");
+                    return;
+                }
+                char cmdline_content[400];
+                size_t bytesRead = fread(cmdline_content,1,sizeof(cmdline_content),fp);
+
+                char cmdline_string[400];
+                strncpy(cmdline_string,cmdline_content,bytesRead);
+                fclose(fp);
 
                 char status[300];
                 snprintf(status, sizeof(status), "/proc/%d/status", pid);
@@ -368,11 +384,7 @@ int number_of_process_running(int print)
                     char line[300];
                     while (fgets(line, sizeof(line), fp))
                     {
-                        if (strstr(line, "Name:"))
-                        {
-                            sscanf(line, "Name: %[^\n]", nome);
-                        }
-                        else if (strstr(line, "State:"))
+                        if (strstr(line, "State:"))
                         {
                             sscanf(line, "State: %[^\n]", state);
                         }
@@ -391,7 +403,7 @@ int number_of_process_running(int print)
                         fprintf(stdout, "%d\t\b\b|", count);
                         fprintf(stdout, "\t%d\t\b\b|", pid);
                         fprintf(stdout, "\t%s\t\b\b|", state);
-                        fprintf(stdout, "\t/proc/%d/status%s\n", pid, nome);
+                        fprintf(stdout, "\t/proc/%d/status%s\n", pid, cmdline_string);
                     }
                     count++;
                 }
@@ -434,21 +446,32 @@ void list_process()
                     break;
                 }
 
+                char cmdline[300];
+                snprintf(cmdline, sizeof(cmdline), "/proc/%d/cmdline", pid);
+                FILE *fp = fopen(cmdline, "r");
+
+                if(fp == NULL){
+                    perror("Falha ao abir o ficheiro");
+                    return;
+                }
+                char cmdline_content[400];
+                size_t bytesRead = fread(cmdline_content,1,sizeof(cmdline_content),fp);
+
+                fclose(fp);
+
+                cmdline_content[bytesRead] = '\0';
+
                 char status[300];
                 snprintf(status, sizeof(status), "/proc/%d/status", pid);
 
-                FILE *fp = fopen(status, "r");
+                fp = fopen(status, "r");
 
                 if (fp != NULL)
                 {
                     char line[300];
                     while (fgets(line, sizeof(line), fp))
                     {
-                        if (strstr(line, "Name:"))
-                        {
-                            sscanf(line, "Name: %[^\n]", nome);
-                        }
-                        else if (strstr(line, "State:"))
+                         if (strstr(line, "State:"))
                         {
                             sscanf(line, "State: %[^\n]", state);
                         }
@@ -468,7 +491,7 @@ void list_process()
                     fprintf(stdout, "%d\t\b\b|", process + processRunning);
                     fprintf(stdout, "\t%d\t\b\b|", pid);
                     fprintf(stdout, "\t%s\t\b\b|", state);
-                    fprintf(stdout, "\t/proc/%d/status%s\n", pid, nome);
+                    fprintf(stdout, "\t/proc/%d/status%s\n", pid, cmdline_content);
                     process++;
                 }
             }
