@@ -86,9 +86,10 @@ int key_pressed()
 /*
     Funcao usada para criar ficheiro
 */
-void create_file(char* filename,comands input)
+void create_file(comands input)
 {   
-    char* subarguments;
+    char** subarguments;
+
 
     int pipe_controles[2];
 
@@ -116,8 +117,8 @@ void create_file(char* filename,comands input)
         execvp(input.argv_cmd1[1],subarguments);
     }else{
         close(pipe_controles[1]);
-        dup2(pipe_controles[0],STDIN_FILENO);
-        close(pipe_controles[0]);
+        //dup2(pipe_controles[0],STDIN_FILENO);
+
 
         int output_file = open(input.argv_cmd2[0],O_WRONLY | O_CREAT | O_TRUNC, 0644);
 
@@ -126,10 +127,66 @@ void create_file(char* filename,comands input)
             return;
         }
 
-        dup2(output_file,STDOUT_FILENO);
-        close(output_file);
+        char buffer[4096];
+        ssize_t bytesRead = read(pipe_controles[0],buffer,sizeof(buffer)); //Bytes lidos do pipe
+
+        write(output_file,buffer,bytesRead);//Escrever no ficheiro
+
+        close(pipe_controles[0]);
+
     }
-   execvp(input.argv_cmd2[0],input.argv_cmd2);
+
+}
+
+void read_file(comands input){
+
+       char** subarguments;
+
+
+    int pipe_controles[2];
+
+    pid_t child;
+
+    if(pipe(pipe_controles) == -1){
+        perror("Falha ao criar o pipe");
+        return;
+    }
+
+    child = fork();
+
+    if(child == -1){
+        perror("Falha ao criar Processo");
+        return;
+    }
+
+    if(child == 0){
+        close(pipe_controles[0]);
+
+        int output_file = open(input.argv_cmd2[0],O_RDONLY);
+
+        if(output_file == -1){
+            perror("Falha ao abrir ficheiro");
+            return;
+        }
+
+        char buffer[4096];
+        ssize_t bytesRead = read(pipe_controles[0],buffer,sizeof(buffer)); //Bytes lidos do pipe
+
+        write(pipe_controles[1],buffer,bytesRead);//Escrever no ficheiro
+
+        close(pipe_controles[1]); 
+        
+    }else{
+        close(pipe_controles[1]);
+        dup2(pipe_controles[0],STDIN_FILENO);
+        close(pipe_controles[0]);
+
+        subarguments = input.argv_cmd1 + 1;
+
+        execvp(input.argv_cmd1[1],subarguments);
+
+    }
+
 }
 
 /*
@@ -229,7 +286,9 @@ int execute_multicommands(comands input)
             }
         }
     }else if(!strcmp(input.operator,">")){
-        create_file(input.argv_cmd2[0],input);
+        create_file(input);
+    }else if(!strcmp(input.operator,"<")){
+        read_file(input);
     }
 }
 

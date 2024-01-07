@@ -1,0 +1,6 @@
+total 72
+-rw-r--r-- 1 ricardo ricardo     0 Jan  7 01:55 dados.txt
+drwxrwxr-x 2 ricardo ricardo  4096 Dec  3 18:50 FOLDER_TEST
+-rwxrwxr-x 1 ricardo ricardo 21896 Jan  7 01:54 mycmd
+-rwxrwxr-x 1 ricardo ricardo 28544 Jan  6 21:33 Source
+-rw-rw-r-- 1 ricardo ricardo 13223 Jan  7 01:54 Source.c
