@@ -88,111 +88,43 @@ int key_pressed()
     Funcao usada para criar ficheiro
 */
 void create_file(comands input)
-{   
-    char** subarguments;
+{
+    char **subarguments;
+    subarguments = input.argv_cmd1 + 1;
 
-
-    int pipe_controles[2];
-
-    pid_t child;
-
-    if(pipe(pipe_controles) == -1){
-        perror("Falha ao criar o pipe");
-        return;
+    int write_file = open(input.argv_cmd2[0], O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (write_file == -1)
+    {
+        perror("Erro ao abrir o FICHEIRO");
+        exit(1);
     }
-
-    child = fork();
-
-    if(child == -1){
-        perror("Falha ao criar Processo");
-        return;
-    }
-
-    if(child == 0){
-        close(pipe_controles[0]);
-        dup2(pipe_controles[1],STDOUT_FILENO);
-        close(pipe_controles[1]); 
-
-        subarguments = input.argv_cmd1 + 1;
-
-        execvp(input.argv_cmd1[1],subarguments);
-    }else{
-        close(pipe_controles[1]);
-        //dup2(pipe_controles[0],STDIN_FILENO);
-
-
-        int output_file = open(input.argv_cmd2[0],O_WRONLY | O_CREAT | O_TRUNC, 0644);
-
-        if(output_file == -1){
-            perror("Falha ao abrir ficheiro");
-            return;
-        }
-
-        char buffer[4096];
-        ssize_t bytesRead = read(pipe_controles[0],buffer,sizeof(buffer)); //Bytes lidos do pipe
-
-        write(output_file,buffer,bytesRead);//Escrever no ficheiro
-
-        close(pipe_controles[0]);
-
-    }
-
+    dup2(write_file, STDOUT_FILENO);
+    close(write_file);
+    execvp(input.argv_cmd1[1], subarguments);
+    perror("execvp");
+    exit(1);
 }
 
-void read_file(comands input){
+void read_file(comands input)
+{
 
-       char** subarguments;
+    char **subarguments;
 
+    subarguments = input.argv_cmd1 + 1;
 
-    int pipe_controles[2];
+        int read_file = open(input.argv_cmd2[0], O_RDONLY);
 
-    pid_t child;
-
-    if(pipe(pipe_controles) == -1){
-        perror("Falha ao criar o pipe");
-        return;
-    }
-
-    child = fork();
-
-    if(child == -1){
-        perror("Falha ao criar Processo");
-        return;
-    }
-
-    if(child == 0){
-        close(pipe_controles[0]);
-        dup2(pipe_controles[1],STDOUT_FILENO);
-
-        int read_file = open(input.argv_cmd2[0],O_RDONLY);
-
-
-        if(read_file == -1){
+        if (read_file == -1)
+        {
             perror("Falha ao abrir ficheiro");
             return;
         }
 
-        char buffer[4096];
-        ssize_t bytesRead = read(read_file,buffer,sizeof(buffer)); //Bytes lidos do pipe
-
-
-        write(STDOUT_FILENO,buffer,bytesRead);//Escrever no ficheiro
-
-        close(read_file); 
-        close(pipe_controles[1]);
-        
-    }else{
-        close(pipe_controles[1]);
-        dup2(pipe_controles[0],STDIN_FILENO);
-        close(pipe_controles[0]);
-
-        subarguments = input.argv_cmd1 + 1;
-
-        execvp(input.argv_cmd1[1],subarguments);
-
-        waitpid(child,NULL,0);
-
-    }
+    dup2(read_file, STDIN_FILENO);
+    close(read_file);
+    execvp(input.argv_cmd1[1], subarguments);
+    perror("execvp");
+    exit(1);
 }
 
 /*
@@ -291,9 +223,13 @@ int execute_multicommands(comands input)
                 execvp(input.argv_cmd2[0], input.argv_cmd2);
             }
         }
-    }else if(!strcmp(input.operator,">")){
+    }
+    else if (!strcmp(input.operator, ">"))
+    {
         create_file(input);
-    }else if(!strcmp(input.operator,"<")){
+    }
+    else if (!strcmp(input.operator, "<"))
+    {
         read_file(input);
     }
 }
@@ -341,7 +277,7 @@ int number_of_process_running(int print)
     DIR *dir = opendir("/proc/");
     struct dirent *entry;
     struct stat file_info;
-    int count = 1, pid,uid;
+    int count = 1, pid, uid;
     char nome[50], state[50], user[50];
 
     if (dir == NULL)
@@ -363,20 +299,21 @@ int number_of_process_running(int print)
             }
             pid = atoi(entry->d_name);
             if (pid > 0)
-            {   
+            {
                 char cmdline[300];
                 snprintf(cmdline, sizeof(cmdline), "/proc/%d/cmdline", pid);
                 FILE *fp = fopen(cmdline, "r");
 
-                if(fp == NULL){
+                if (fp == NULL)
+                {
                     perror("Falha ao abir o ficheiro");
                     return;
                 }
                 char cmdline_content[400];
-                size_t bytesRead = fread(cmdline_content,1,sizeof(cmdline_content),fp);
+                size_t bytesRead = fread(cmdline_content, 1, sizeof(cmdline_content), fp);
 
                 char cmdline_string[400];
-                strncpy(cmdline_string,cmdline_content,bytesRead);
+                strncpy(cmdline_string, cmdline_content, bytesRead);
                 fclose(fp);
 
                 char status[300];
@@ -399,7 +336,7 @@ int number_of_process_running(int print)
                     }
                     fclose(fp);
                 }
-                
+
                 // fp = open("/etc/passwd","r");
                 // // fseek(fp,0,SEEK_SET);
                 // // char passwd_line[300];
@@ -415,7 +352,8 @@ int number_of_process_running(int print)
                 // close(fp);
 
                 struct passwd *pwd = getpwuid(uid);
-                if(!pwd){
+                if (!pwd)
+                {
                     return;
                 }
 
@@ -427,16 +365,20 @@ int number_of_process_running(int print)
                         fprintf(stdout, "\t%d\t\b\b|", pid);
                         fprintf(stdout, "\t%s\t\b\b|\t", state);
                         fprintf(stdout, "\t%s\t\b\b|\t", pwd->pw_name);
-                        //fprintf(stdout, "\t/proc/%d/status%s\n", pid, cmdline_string);
-                        for(size_t i = 0; i < bytesRead;i++){
-                        char cur = cmdline_content[i];
-                        if(cur == '\0'){
-                            fprintf(stdout,"");
-                        }else{
-                            fprintf(stdout,"%c",cur);
+                        // fprintf(stdout, "\t/proc/%d/status%s\n", pid, cmdline_string);
+                        for (size_t i = 0; i < bytesRead; i++)
+                        {
+                            char cur = cmdline_content[i];
+                            if (cur == '\0')
+                            {
+                                fprintf(stdout, "");
+                            }
+                            else
+                            {
+                                fprintf(stdout, "%c", cur);
+                            }
                         }
-                    }
-                    fprintf(stdout,"\n");
+                        fprintf(stdout, "\n");
                     }
                     count++;
                 }
@@ -483,17 +425,17 @@ void list_process()
                 snprintf(cmdline, sizeof(cmdline), "/proc/%d/cmdline", pid);
                 FILE *fp = fopen(cmdline, "r");
 
-                if(fp == NULL){
+                if (fp == NULL)
+                {
                     perror("Falha ao abir o ficheiro");
                     return;
                 }
                 char cmdline_content[400];
-                size_t bytesRead = fread(cmdline_content,1,sizeof(cmdline_content),fp);
+                size_t bytesRead = fread(cmdline_content, 1, sizeof(cmdline_content), fp);
 
                 fclose(fp);
 
                 cmdline_content[bytesRead] = '\0';
-
 
                 char status[300];
                 snprintf(status, sizeof(status), "/proc/%d/status", pid);
@@ -505,7 +447,7 @@ void list_process()
                     char line[300];
                     while (fgets(line, sizeof(line), fp))
                     {
-                         if (strstr(line, "State:"))
+                        if (strstr(line, "State:"))
                         {
                             sscanf(line, "State: %[^\n]", state);
                         }
@@ -526,17 +468,21 @@ void list_process()
                     fprintf(stdout, "\t%d\t\b\b|", pid);
                     fprintf(stdout, "\t%s\t\b\b|\t", state);
                     fprintf(stdout, "\t%s\t\b\b|\t", user);
-                    //fprintf(stdout, "\t/proc/%d/status%s\n", pid, cmdline_content);
+                    // fprintf(stdout, "\t/proc/%d/status%s\n", pid, cmdline_content);
 
-                    for(size_t i = 0; i < bytesRead;i++){
+                    for (size_t i = 0; i < bytesRead; i++)
+                    {
                         char cur = cmdline_content[i];
-                        if(cur == '\0'){
-                            fprintf(stdout,"");
-                        }else{
-                            fprintf(stdout,"%c",cur);
+                        if (cur == '\0')
+                        {
+                            fprintf(stdout, "");
+                        }
+                        else
+                        {
+                            fprintf(stdout, "%c", cur);
                         }
                     }
-                    fprintf(stdout,"\n");
+                    fprintf(stdout, "\n");
 
                     process++;
                 }
