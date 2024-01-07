@@ -337,7 +337,7 @@ int number_of_process_running(int print)
     DIR *dir = opendir("/proc/");
     struct dirent *entry;
     struct stat file_info;
-    int count = 1, pid;
+    int count = 1, pid,uid;
     char nome[50], state[50], user[50];
 
     if (dir == NULL)
@@ -377,7 +377,7 @@ int number_of_process_running(int print)
 
                 char status[300];
                 snprintf(status, sizeof(status), "/proc/%d/status", pid);
-                FILE *fp = fopen(status, "r");
+                fp = fopen(status, "r");
 
                 if (fp != NULL)
                 {
@@ -388,13 +388,27 @@ int number_of_process_running(int print)
                         {
                             sscanf(line, "State: %[^\n]", state);
                         }
-                        else if (strstr(line, "User:"))
+                        else if (strstr(line, "Uid:"))
                         {
-                            sscanf(line, "Uid: %*d %50s", user);
+                            sscanf(line, "Uid: %*d", uid);
                         }
                     }
                     fclose(fp);
                 }
+                
+                fp = open("/etc/passwd","r");
+                fseek(fp,0,SEEK_SET);
+                char passwd_line[300];
+                while(fgets(passwd_line,sizeof(passwd_line),fp)){
+                    int passwd_uid;
+                    sscanf(passwd_line,"%*s %*s %d",&passwd_uid);
+
+                    if(passwd_uid == uid){
+                        sscanf(passwd_line,"%[^:]",user);
+                        break;
+                    }
+                }
+                close(fp);
 
                 if (!strcmp(state, "R (running)"))
                 {
@@ -402,8 +416,18 @@ int number_of_process_running(int print)
                     {
                         fprintf(stdout, "%d\t\b\b|", count);
                         fprintf(stdout, "\t%d\t\b\b|", pid);
-                        fprintf(stdout, "\t%s\t\b\b|", state);
-                        fprintf(stdout, "\t/proc/%d/status%s\n", pid, cmdline_string);
+                        fprintf(stdout, "\t%s\t\b\b|\t", state);
+                        fprintf(stdout, "\t%s\t\b\b|\t", user);
+                        //fprintf(stdout, "\t/proc/%d/status%s\n", pid, cmdline_string);
+                        for(size_t i = 0; i < bytesRead;i++){
+                        char cur = cmdline_content[i];
+                        if(cur == '\0'){
+                            fprintf(stdout,"");
+                        }else{
+                            fprintf(stdout,"%c",cur);
+                        }
+                    }
+                    fprintf(stdout,"\n");
                     }
                     count++;
                 }
@@ -461,6 +485,7 @@ void list_process()
 
                 cmdline_content[bytesRead] = '\0';
 
+
                 char status[300];
                 snprintf(status, sizeof(status), "/proc/%d/status", pid);
 
@@ -490,8 +515,19 @@ void list_process()
                 {
                     fprintf(stdout, "%d\t\b\b|", process + processRunning);
                     fprintf(stdout, "\t%d\t\b\b|", pid);
-                    fprintf(stdout, "\t%s\t\b\b|", state);
-                    fprintf(stdout, "\t/proc/%d/status%s\n", pid, cmdline_content);
+                    fprintf(stdout, "\t%s\t\b\b|\t", state);
+                    //fprintf(stdout, "\t/proc/%d/status%s\n", pid, cmdline_content);
+
+                    for(size_t i = 0; i < bytesRead;i++){
+                        char cur = cmdline_content[i];
+                        if(cur == '\0'){
+                            fprintf(stdout,"");
+                        }else{
+                            fprintf(stdout,"%c",cur);
+                        }
+                    }
+                    fprintf(stdout,"\n");
+
                     process++;
                 }
             }
