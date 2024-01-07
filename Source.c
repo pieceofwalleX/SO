@@ -8,6 +8,7 @@
 #include <sys/time.h>
 #include <linux/limits.h>
 #include <fcntl.h>
+#include <pwd.h>
 
 #define COMMAND_ERROR_1 "Command not found!"
 
@@ -396,19 +397,24 @@ int number_of_process_running(int print)
                     fclose(fp);
                 }
                 
-                fp = open("/etc/passwd","r");
-                fseek(fp,0,SEEK_SET);
-                char passwd_line[300];
-                while(fgets(passwd_line,sizeof(passwd_line),fp)){
-                    int passwd_uid;
-                    sscanf(passwd_line,"%*s %*s %d",&passwd_uid);
+                // fp = open("/etc/passwd","r");
+                // // fseek(fp,0,SEEK_SET);
+                // // char passwd_line[300];
+                // // while(fgets(passwd_line,sizeof(passwd_line),fp) != NULL){
+                // //     int passwd_uid;
+                // //     sscanf(passwd_line,"%*s %*s %d",&passwd_uid);
 
-                    if(passwd_uid == uid){
-                        sscanf(passwd_line,"%[^:]",user);
-                        break;
-                    }
+                // //     if(passwd_uid == uid){
+                // //         sscanf(passwd_line,"%[^:]",user);
+                // //         break;
+                // //     }
+                // // }
+                // close(fp);
+
+                struct passwd *pwd = getpwuid(uid);
+                if(!pwd){
+                    return;
                 }
-                close(fp);
 
                 if (!strcmp(state, "R (running)"))
                 {
@@ -417,7 +423,7 @@ int number_of_process_running(int print)
                         fprintf(stdout, "%d\t\b\b|", count);
                         fprintf(stdout, "\t%d\t\b\b|", pid);
                         fprintf(stdout, "\t%s\t\b\b|\t", state);
-                        fprintf(stdout, "\t%s\t\b\b|\t", user);
+                        fprintf(stdout, "\t%s\t\b\b|\t", pwd->pw_name);
                         //fprintf(stdout, "\t/proc/%d/status%s\n", pid, cmdline_string);
                         for(size_t i = 0; i < bytesRead;i++){
                         char cur = cmdline_content[i];
@@ -516,6 +522,7 @@ void list_process()
                     fprintf(stdout, "%d\t\b\b|", process + processRunning);
                     fprintf(stdout, "\t%d\t\b\b|", pid);
                     fprintf(stdout, "\t%s\t\b\b|\t", state);
+                    fprintf(stdout, "\t%s\t\b\b|\t", user);
                     //fprintf(stdout, "\t/proc/%d/status%s\n", pid, cmdline_content);
 
                     for(size_t i = 0; i < bytesRead;i++){
