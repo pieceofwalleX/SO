@@ -130,7 +130,6 @@ void create_file(char* filename,comands input)
         close(output_file);
     }
    execvp(input.argv_cmd2[0],input.argv_cmd2);
-    
 }
 
 /*
