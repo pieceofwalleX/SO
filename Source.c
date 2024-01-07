@@ -163,21 +163,23 @@ void read_file(comands input){
     if(child == 0){
         close(pipe_controles[0]);
         dup2(pipe_controles[1],STDOUT_FILENO);
-        close(pipe_controles[1]);
 
-        int output_file = open(input.argv_cmd2[0],O_RDONLY);
+        int read_file = open(input.argv_cmd2[0],O_RDONLY);
 
-        if(output_file == -1){
+
+        if(read_file == -1){
             perror("Falha ao abrir ficheiro");
             return;
         }
 
         char buffer[4096];
-        ssize_t bytesRead = read(output_file,buffer,sizeof(buffer)); //Bytes lidos do pipe
+        ssize_t bytesRead = read(read_file,buffer,sizeof(buffer)); //Bytes lidos do pipe
+
 
         write(STDOUT_FILENO,buffer,bytesRead);//Escrever no ficheiro
 
-        close(output_file); 
+        close(read_file); 
+        close(pipe_controles[1]);
         
     }else{
         close(pipe_controles[1]);
@@ -188,8 +190,9 @@ void read_file(comands input){
 
         execvp(input.argv_cmd1[1],subarguments);
 
-    }
+        waitpid(child,NULL,0);
 
+    }
 }
 
 /*
